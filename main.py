@@ -9,6 +9,15 @@ class Item(Enum):
     X = 'X'
     O = 'O'
 
+def winsLosesDrawsPieGraphic(L, playerName):
+    plt.pie(L, labels = ['Wins', 'Loses', 'Draws'],       # valeurs et labels
+       autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
+       pctdistance = 0.7,                    # distance au centre pour l'affichage des pourcentages
+       labeldistance = 1.2)
+
+    plt.title('Diagramme en secteurs contenant le résultats des parties de ' + playerName)
+    plt.show()
+
 class Player():
     def __init__(self, name, playerType, item, wins, loses, draws):
         self.name = name
@@ -312,7 +321,7 @@ class Game:
         print("Choisir le mode de jeu")
         gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainner")
         while(not (gameMode.isnumeric()) or len(gameMode) != 1):
-            gameMode = input("1 - IA vs IA; 2 Humain vs IA - 3 Humain vs Humain")
+            gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainner")
 
         if(gameMode == '1'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
@@ -353,14 +362,8 @@ class Game:
             board.resetBoard()
             numberGame -= 1
 
-        listOfWins = [self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()]
-        plt.pie(listOfWins, labels = ['Wins', 'Loses', 'Draws'],       # valeurs et labels
-           autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
-           pctdistance = 0.7,                    # distance au centre pour l'affichage des pourcentages
-           labeldistance = 1.2)
-
-        plt.title('Diagramme en secteurs contenant le résultats des parties de ' + self.getPlayer1().getName())
-        plt.show()
+        winsLosesDrawsPieGraphic([self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()], self.getPlayer1().getName())
+        
 
         print("c'est fini")
 
