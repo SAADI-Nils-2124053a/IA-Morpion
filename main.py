@@ -9,16 +9,14 @@ class Item(Enum):
     X = 'X'
     O = 'O'
 
-
-#Classe pour les joueurs humain
-class Player:
-    def __init__(self, name, item) :
+class Player():
+    def __init__(self, name, playerType, item, wins, loses, draws):
         self.name = name
+        self.type = playerType
         self.item = item
-        self.type = 'Humain'
-        self.wins = 0
-        self.loses = 0
-        self.draws = 0
+        self.wins = wins
+        self.loses = loses
+        self.draws = draws
 
     def setWins(self, wins):
         self.wins = wins
@@ -41,15 +39,109 @@ class Player:
     def getDraws(self):
         return self.draws
 
+    def getType(self):
+        return self.type
+
     def getItem(self):
         return self.item
 
-    def getType(self):
-        return self.type
+    def getName(self):
+        return self.name
+
+class AI_RL(Player):
+
+    def __init__(self, name,item, allCombinations, epsilon):
+        super().__init__(name, 'IA', item, 0,0,0)
+        self.epsilon = epsilon   # proba d'exploration
+        self.learning = 0.05  # changement des probas des combinaisons
+        self.current_moves = {}
+        self.allCombinations = allCombinations
+        self.state_values = self.loadFile()
+        self.movesPlay = np.array([])
+
+    def update(self, win):
+        if win:
+            for move in self.movesPlay:
+                if(self.state_values[int(move)] == 0):
+                    self.state_values[int(move)] = self.learning
+                else:
+                    self.state_values[int(move)] *= (1 + self.learning)
+        else:
+            for move in self.movesPlay:
+                self.state_values[int(move)] *= (1 - self.learning)
+
+        self.movesPlay = np.array([])
+        self.updateFile()
+        print("Fichier mis à jour")
+
+
+
+    def bestMove(self, combinationsArray, emptyCells):
+        valuesList = []
+        for i in range(len(combinationsArray)):
+            valuesList.append(self.state_values[i])
+        argMax = np.argmax(valuesList)
+        self.movesPlay = np.append(self.movesPlay, combinationsArray[argMax])
+        return emptyCells[argMax]
+
+
+    def combinations(self, board, emptyCellsArray):
+        arrayOfNextStateId = []
+
+        actualBoard = np.copy(board)
+        actualBoardClass = Board(np.copy(board))
+
+        for i in range(len(emptyCellsArray)):
+            actualBoardClass.addItem(emptyCellsArray[i], self.item)
+            arrayOfNextStateId.append(  list(self.allCombinations.keys())[  list(self.allCombinations.values()).index(actualBoardClass.getBoard().tolist())  ]  )
+            actualBoardClass.resetWithTemplate(actualBoard)
+
+        return arrayOfNextStateId
+
+    def emptyCells(self, board):
+        emptyCells = np.array([])
+        for x in range(len(board)):
+            for y in range (len(board[0])):
+                if board[x][y] == ' ':
+                    emptyCells = np.append(emptyCells,str(x)+str(y))
+        return emptyCells
+
+    def input(self, board):
+        emptyCellsArray = self.emptyCells(board) # empty cells
+
+        combinationsArray = self.combinations(board, emptyCellsArray)
+        if random.random() < self.epsilon: #exploration
+            randomNumber = random.randint(0, len(emptyCellsArray)-1);
+            move = emptyCellsArray[randomNumber]
+
+            self.movesPlay = np.append(self.movesPlay, combinationsArray[randomNumber])
+            print(str(self.movesPlay))
+
+            return move
+
+        else:
+            bestMove = self.bestMove(combinationsArray, emptyCellsArray) # max (proba) ou random (random < epsilon (exploration))
+
+
+            print(str(self.movesPlay))
+            return bestMove
+
+    def loadFile(self):
+        return np.loadtxt('trained_state_values_' + self.item + '.txt', dtype=np.float64)
+
+    def updateFile(self):
+        np.savetxt('trained_state_values_' + self.item + '.txt', self.state_values, fmt = '%.6f')
+
+
+#Classe pour les joueurs humain
+class Human(Player):
+    def __init__(self, name, item) :
+        super().__init__(name, 'Humain', item, 0,0,0)
 
     def input(self, board) :
         print(self.name + "Joue" + '/n')
         return input("Rentrez la position de votre coup")
+    
 
 #Classe pour la grille de jeu
 class Board:
@@ -129,123 +221,6 @@ class Board:
                 and self.boardTemplate[0][2] == item):
             return True
 
-
-class AI_RL():
-
-    def __init__(self, name,item, allCombinations, epsilon):
-        self.name = name
-        self.type = 'IA'
-        self.item = item
-        self.epsilon = epsilon   # proba d'exploration
-        self.learning = 0.05  # changement des probas des combinaisons
-        self.current_moves = {}
-        self.allCombinations = allCombinations
-        self.state_values = self.loadFile()
-        self.movesPlay = np.array([])
-        self.wins = 0
-        self.loses = 0
-        self.draws = 0
-
-    def setWins(self, wins):
-        self.wins = wins
-
-    def setLoses(self, loses):
-        self.loses = loses
-
-    def setDraws(self, draws):
-        self.draws = draws
-
-    def getName(self):
-        return self.name
-
-    def getWins(self):
-        return self.wins
-
-    def getLoses(self):
-        return self.loses
-
-    def getDraws(self):
-        return self.draws
-
-    def getType(self):
-        return self.type
-
-    def update(self, win):
-        if win:
-            for move in self.movesPlay:
-                if(self.state_values[int(move)] == 0):
-                    self.state_values[int(move)] = self.learning
-                else:
-                    self.state_values[int(move)] *= (1 + self.learning)
-        else:
-            for move in self.movesPlay:
-                self.state_values[int(move)] *= (1 - self.learning)
-
-        self.movesPlay = np.array([])
-        self.updateFile()
-        print("Fichier mis à jour")
-
-    def getItem(self):
-        return self.item
-
-
-    def bestMove(self, combinationsArray, emptyCells):
-        valuesList = []
-        for i in range(len(combinationsArray)):
-            valuesList.append(self.state_values[i])
-        argMax = np.argmax(valuesList)
-        self.movesPlay = np.append(self.movesPlay, combinationsArray[argMax])
-        return emptyCells[argMax]
-
-
-    def combinations(self, board, emptyCellsArray):
-        arrayOfNextStateId = []
-
-        actualBoard = np.copy(board)
-        actualBoardClass = Board(np.copy(board))
-
-        for i in range(len(emptyCellsArray)):
-            actualBoardClass.addItem(emptyCellsArray[i], self.item)
-            arrayOfNextStateId.append(  list(self.allCombinations.keys())[  list(self.allCombinations.values()).index(actualBoardClass.getBoard().tolist())  ]  )
-            actualBoardClass.resetWithTemplate(actualBoard)
-
-        return arrayOfNextStateId
-
-    def emptyCells(self, board):
-        emptyCells = np.array([])
-        for x in range(len(board)):
-            for y in range (len(board[0])):
-                if board[x][y] == ' ':
-                    emptyCells = np.append(emptyCells,str(x)+str(y))
-        return emptyCells
-
-    def input(self, board):
-        emptyCellsArray = self.emptyCells(board) # empty cells
-
-        combinationsArray = self.combinations(board, emptyCellsArray)
-        if random.random() < self.epsilon: #exploration
-            randomNumber = random.randint(0, len(emptyCellsArray)-1);
-            move = emptyCellsArray[randomNumber]
-
-            self.movesPlay = np.append(self.movesPlay, combinationsArray[randomNumber])
-            print(str(self.movesPlay))
-
-            return move
-
-        else:
-            bestMove = self.bestMove(combinationsArray, emptyCellsArray) # max (proba) ou random (random < epsilon (exploration))
-
-
-            print(str(self.movesPlay))
-            return bestMove
-
-    def loadFile(self):
-        return np.loadtxt('trained_state_values_' + self.item + '.txt', dtype=np.float64)
-
-    def updateFile(self):
-        np.savetxt('trained_state_values_' + self.item + '.txt', self.state_values, fmt = '%.6f')
-
-
 #Classe fonctionnement du jeu
 class Game:
     player1 = None
@@ -279,9 +254,7 @@ class Game:
     def verifyEndGame(self, count, playerWhoPlayed, otherPlayer):
         if(count >= 5):
             endGame = board.verifyEndGame(playerWhoPlayed.getItem())
-            print('a')
             if(endGame == 'Win'):
-                print('c')
                 if(playerWhoPlayed.getType() == "IA"):
                     playerWhoPlayed.update(True)
                 if(otherPlayer.getType() == "IA"):
@@ -292,7 +265,6 @@ class Game:
             elif(endGame == 'Draw'):
                 playerWhoPlayed.setDraws(playerWhoPlayed.getDraws() + 1)
                 otherPlayer.setDraws(otherPlayer.getDraws() + 1)
-                print('b')
                 return True
         return False
 
@@ -300,18 +272,25 @@ class Game:
         # logique du jeu
         count = 0
         position = ' '
+        print(self.board.getBoard())
+        
+        # player 1 input - First Move
+        self.round(self.player1)
+        count +=1
+        
         while True :
-            # player 1 input
-            self.round(self.player1)
-            count +=1
-
-            if(self.verifyEndGame(count, self.player1, self.player2) == True): break
 
             # player 2 input
             self.round(self.player2)
             count +=1
 
             if(self.verifyEndGame(count, self.player2, self.player1) == True): break
+
+            # player 1 input
+            self.round(self.player1)
+            count +=1
+
+            if(self.verifyEndGame(count, self.player1, self.player2) == True): break
 
         return 0
 
@@ -337,12 +316,12 @@ class Game:
             self.setPlayer2(AI_RL('IA_1',Item.O.value, allCombinations, 0.105))
 
         if(gameMode == '2'):
-            self.setPlayer1(Player('Joueur',Item.X.value))
+            self.setPlayer1(Human('Joueur',Item.X.value))
             self.setPlayer2(AI_RL('IA_1',Item.O.value, allCombinations, 0.105))
 
         if(gameMode == '3'):
-            self.setPlayer1(Player('Joueur_1',Item.X.value))
-            self.setPlayer1(Player('Joueur_2',Item.O.value))
+            self.setPlayer1(Human('Joueur_1',Item.X.value))
+            self.setPlayer1(Human('Joueur_2',Item.O.value))
 
         if(gameMode == '4'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
