@@ -68,7 +68,10 @@ class AI_RL(Player):
                     self.state_values[int(move)] *= (1 + self.learning)
         else:
             for move in self.movesPlay:
-                self.state_values[int(move)] *= (1 - self.learning)
+                if(self.state_values[int(move)] == 0):
+                    self.state_values[int(move)] -= self.learning
+                else:
+                    self.state_values[int(move)] *= (1 - self.learning)
 
         self.movesPlay = np.array([])
         self.updateFile()
