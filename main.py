@@ -1,5 +1,4 @@
 import numpy as np
-from random import choice
 import random
 from enum import Enum
 import itertools
@@ -9,6 +8,10 @@ class Item(Enum):
     X = 'X'
     O = 'O'
 
+
+"""
+Section : Fonction pour faire les statistique
+"""
 def winsLosesDrawsPieGraphic(L, playerName):
     plt.pie(L, labels = ['Wins', 'Loses', 'Draws'],       # valeurs et labels
        autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
@@ -17,15 +20,71 @@ def winsLosesDrawsPieGraphic(L, playerName):
 
     plt.title('Diagramme en secteurs contenant le résultats des parties de ' + playerName)
     plt.show()
+    
+def firstAndSecondMoveGraphic(firstMove, secondMove):
+    
+    maxFirstMove = max(max(inner_list) for inner_list in firstMove)
+    minFirstMove = min(min(inner_list) for inner_list in firstMove)
+
+    f, ax1 = plt.subplots(1)
+    ax1.imshow(firstMove, cmap='Reds')
+    ax1.axis(False)
+    plt.title('Structure matricelle des 1er coups joués')
+    plt.show()
+    
+    fig, ax = plt.subplots(1, figsize=(6, 6))
+    ax.imshow(np.arange(maxFirstMove)[None, :], cmap='Reds', extent=[minFirstMove, maxFirstMove, 0, maxFirstMove/10]);
+
+    plt.title('Echelle pour la Structure matricelle des 1er coups joués')
+    plt.show()
+    
+    print("Premier coup : " , firstMove)
+    
+    
+    maxSecondMove = max(max(inner_list) for inner_list in secondMove)
+    minSecondMove = min(min(inner_list) for inner_list in secondMove)
+    
+    f, ax2 = plt.subplots(1)
+    ax2.imshow(secondMove, cmap='Reds')
+    ax2.axis(False)
+    plt.title('Structure matricelle des 2eme coups joués')
+    plt.show()
+    
+    fig, ax = plt.subplots(1, figsize=(6, 6))
+    ax.imshow(np.arange(maxFirstMove)[None, :], cmap='Reds', extent=[minSecondMove, maxSecondMove, 0,maxFirstMove/10]);
+    plt.title('Echelle pour la Structure matricelle des 2eme coups joués')
+    plt.show()
+    
+    print("Second coup " , secondMove)
+
+def victoryTypePieGraphic(victoryType):
+    plt.pie(victoryType, labels = ['Horizontalement', 'Vertigalement', 'Diagonalement'],       # valeurs et labels
+       autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
+       pctdistance = 0.7,                    # distance au centre pour l'affichage des pourcentages
+       labeldistance = 1.2)
+    plt.title('Graphique de la répartition des types de victoire')
+    plt.show()
+
+def learningCoefGraphic(learningList, name):
+    x = [i for i in range (len(learningList))]
+    plt.plot(x,learningList)
+    plt.title("L'évolution des valeurs d'apprentissage de "+ name)
+    plt.show()
+
+"""
+Fin de section
+"""
 
 class Player():
-    def __init__(self, name, playerType, item, wins, loses, draws):
+    def __init__(self, name, playerType, item, wins, loses, draws, learningList):
         self.name = name
         self.type = playerType
         self.item = item
         self.wins = wins
         self.loses = loses
         self.draws = draws
+        self.learningList = learningList
+
 
     def setWins(self, wins):
         self.wins = wins
@@ -35,6 +94,9 @@ class Player():
 
     def setDraws(self, draws):
         self.draws = draws
+    
+    def addLearningList(self, learning):
+        self.learningList.append(learning)
 
     def getName(self):
         return self.name
@@ -53,14 +115,15 @@ class Player():
 
     def getItem(self):
         return self.item
-
-    def getName(self):
-        return self.name
-
+    
+    def getLearningList(self):
+        return self.learningList
+    
+#Classe pour l'IA
 class AI_RL(Player):
 
     def __init__(self, name,item, allCombinations, epsilon):
-        super().__init__(name, 'IA', item, 0,0,0)
+        super().__init__(name, 'IA', item, 0,0,0,[])
         self.epsilon = epsilon   # proba d'exploration
         self.learning = 0.05  # changement des probas des combinaisons
         self.current_moves = {}
@@ -75,17 +138,20 @@ class AI_RL(Player):
                     self.state_values[int(move)] = self.learning
                 else:
                     self.state_values[int(move)] *= (1 + self.learning)
+                self.addLearningList(self.state_values[int(move)])
+                
         else:
             for move in self.movesPlay:
                 if(self.state_values[int(move)] == 0):
-                    self.state_values[int(move)] -= self.learning
+                    self.state_values[int(move)] -= self.learning         
                 else:
                     self.state_values[int(move)] *= (1 - self.learning)
+                  
+                self.addLearningList(self.state_values[int(move)])
 
         self.movesPlay = np.array([])
         self.updateFile()
         print("Fichier mis à jour")
-
 
 
     def bestMove(self, combinationsArray, emptyCells):
@@ -95,7 +161,6 @@ class AI_RL(Player):
         argMax = np.argmax(valuesList)
         self.movesPlay = np.append(self.movesPlay, combinationsArray[argMax])
         return emptyCells[argMax]
-
 
     def combinations(self, board, emptyCellsArray):
         arrayOfNextStateId = []
@@ -144,19 +209,19 @@ class AI_RL(Player):
     def updateFile(self):
         np.savetxt('trained_state_values_' + self.item + '.txt', self.state_values, fmt = '%.6f')
 
-
 #Classe pour les joueurs humain
 class Human(Player):
     def __init__(self, name, item) :
-        super().__init__(name, 'Humain', item, 0,0,0)
+        super().__init__(name, 'Humain', item, 0,0,0,[])
 
     def input(self, board) :
         print(self.name + "Joue" + '/n')
         return input("Rentrez la position de votre coup")
     
-
 #Classe pour la grille de jeu
 class Board:
+    
+    victoryType = [0,0,0] #[horizontalement, vertigalement, diagonalement]
 
     def __init__(self, boardTemplate):
         self.boardTemplate = boardTemplate
@@ -171,6 +236,17 @@ class Board:
 
     def getBoard(self):
         return self.boardTemplate
+
+    def getVictoryType(self):
+        return self.victoryType
+
+    def setVictortType(self, type):
+        if (type == "horizontal"):
+            self.victoryType[0] += 1
+        elif (type == "vertical"):
+            self.victoryType[1] += 1
+        elif (type == "diagonal"):
+            self.victoryType[2] += 1
 
     def resetBoard(self):
         self.boardTemplate = np.zeros((3, 3), dtype=str)
@@ -214,6 +290,7 @@ class Board:
         # horizontal
         for row in self.boardTemplate:
             if (row[0] == item and row[1] == item and row[2] == item):
+                self.setVictortType("horizontal")
                 return True
 
         # vertical
@@ -221,22 +298,27 @@ class Board:
             if (self.boardTemplate[0][i] == item
                     and self.boardTemplate[1][i] == item
                     and self.boardTemplate[2][i] == item):
+                self.setVictortType("vertical")
                 return True
 
         # diagonal
         if (self.boardTemplate[0][0] == item
                 and self.boardTemplate[1][1] == item
                 and self.boardTemplate[2][2] == item):
+            self.setVictortType("diagonal")
             return True
         if (self.boardTemplate[2][0] == item
                 and self.boardTemplate[1][1] == item
                 and self.boardTemplate[0][2] == item):
+            self.setVictortType("diagonal")
             return True
 
 #Classe fonctionnement du jeu
 class Game:
     player1 = None
     player2 = None
+    firstMove = [[0,0,0],[0,0,0],[0,0,0]]
+    secondMove = [[0,0,0],[0,0,0],[0,0,0]]    
 
     def __init__(self, board) :
         self.board = board
@@ -247,12 +329,28 @@ class Game:
     def setPlayer2(self, player2):
         self.player2 = player2
 
+    def setFirstMove(self, position):
+        x=int(position[0])
+        y=int(position[1])
+        self.firstMove[x][y] += 1
+        
+    def setSecondMove(self, position):
+        x=int(position[0])
+        y=int(position[1])
+        self.secondMove[x][y] += 1
+        
     def getPlayer1(self):
         return self.player1
 
     def getPlayer2(self):
         return self.player2
-
+    
+    def getFirstMove(self):
+        return self.firstMove
+    
+    def getSecondMove(self):
+        return self.secondMove
+        
     def round(self, player):
         position = player.input(board.getBoard())
 
@@ -262,6 +360,7 @@ class Game:
 
         board.addItem(position, player.getItem())
         print(board.getBoard())
+        return position
 
     def verifyEndGame(self, count, playerWhoPlayed, otherPlayer):
         if(count >= 5):
@@ -281,28 +380,31 @@ class Game:
         return False
 
     def game(self):
+        
         # logique du jeu
         count = 0
-        position = ' '
         print(self.board.getBoard())
+        # player 1 input - First Move*
+        self.setFirstMove(self.round(self.player1))
+       
+        count +=1
         
-        # player 1 input - First Move
-        self.round(self.player1)
+        self.setSecondMove(self.round(self.player2))
         count +=1
         
         while True :
-
-            # player 2 input
-            self.round(self.player2)
-            count +=1
-
-            if(self.verifyEndGame(count, self.player2, self.player1) == True): break
 
             # player 1 input
             self.round(self.player1)
             count +=1
 
             if(self.verifyEndGame(count, self.player1, self.player2) == True): break
+
+            # player 2 input
+            self.round(self.player2)
+            count +=1
+
+            if(self.verifyEndGame(count, self.player2, self.player1) == True): break
 
         return 0
 
@@ -312,8 +414,6 @@ class Game:
         all_possible_states = [[list(i[0:3]),list(i[3:6]),list(i[6:10])] for i in itertools.product(player, repeat = 9)]
         n_states = len(all_possible_states)
         allCombinations = {}
-        
-        
         
         for state in range (n_states):
             allCombinations[state] = all_possible_states[state]
@@ -325,11 +425,11 @@ class Game:
 
         if(gameMode == '1'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
-            self.setPlayer2(AI_RL('IA_1',Item.O.value, allCombinations, 0.105))
+            self.setPlayer2(AI_RL('IA_2',Item.O.value, allCombinations, 0.105))
 
         if(gameMode == '2'):
             self.setPlayer1(Human('Joueur',Item.X.value))
-            self.setPlayer2(AI_RL('IA_1',Item.O.value, allCombinations, 0.105))
+            self.setPlayer2(AI_RL('IA',Item.O.value, allCombinations, 0.105))
 
         if(gameMode == '3'):
             self.setPlayer1(Human('Joueur_1',Item.X.value))
@@ -337,7 +437,7 @@ class Game:
 
         if(gameMode == '4'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
-            self.setPlayer2(AI_RL('IA_1',Item.O.value, allCombinations, 1.0))
+            self.setPlayer2(AI_RL('IA_2',Item.O.value, allCombinations, 1.0))
 
         numberGame = input("Choisir le nombre de partie")
         while(not (numberGame.isnumeric())):
@@ -347,7 +447,6 @@ class Game:
 
     def main(self):
         numberGame = int(self.menu())
-
         while numberGame>0: # mettre un argument dans l'appel du fichier (Exemple : -n 1000 => 1000 games
             player1 = self.player1
             player2 = self.player2
@@ -364,8 +463,14 @@ class Game:
 
         winsLosesDrawsPieGraphic([self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()], self.getPlayer1().getName())
         
-
-        print("c'est fini")
+        firstAndSecondMoveGraphic(self.getFirstMove(), self.getSecondMove())
+       
+        victoryTypePieGraphic(self.board.getVictoryType())
+        
+        learningCoefGraphic(self.player1.getLearningList(), self.player1.getName())
+        learningCoefGraphic(self.player2.getLearningList(), self.player2.getName())
+        
+        print("Fin des parties")
 
 boardTemplate = np.array([
     [' ',' ',' '],
