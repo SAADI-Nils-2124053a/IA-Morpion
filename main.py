@@ -64,18 +64,26 @@ def victoryTypePieGraphic(victoryType):
     plt.title('Graphique de la répartition des types de victoire')
     plt.show()
 
-def learningCoefGraphic(learningList, name):
+def learningValueGraphic(learningList, name):
+    
     x = [i for i in range (len(learningList))]
-    plt.plot(x,learningList)
+    
+    plt.scatter(x,learningList)
+    
+    a, b = np.polyfit(x,learningList,1)
+    
+    x_trace = np.linspace(0,len(learningList),len(learningList)*10)
+    plt.plot(x_trace, a*x_trace+b , 'red')
     plt.title("L'évolution des valeurs d'apprentissage de "+ name)
     plt.show()
-
+ 
+    
 """
 Fin de section
 """
 
 class Player():
-    def __init__(self, name, playerType, item, wins, loses, draws, learningList):
+    def __init__(self, name, playerType, item, wins, loses, draws, learningList, vectorGame):
         self.name = name
         self.type = playerType
         self.item = item
@@ -122,7 +130,7 @@ class Player():
 class AI_RL(Player):
 
     def __init__(self, name,item, allCombinations, epsilon):
-        super().__init__(name, 'IA', item, 0,0,0,[])
+        super().__init__(name, 'IA', item, 0,0,0,[],{})
         self.epsilon = epsilon   # proba d'exploration
         self.learning = 0.05  # changement des probas des combinaisons
         self.current_moves = {}
@@ -131,23 +139,28 @@ class AI_RL(Player):
         self.movesPlay = np.array([])
 
     def update(self, win):
+        averageLearningGame = np.array([])
         if win:
             for move in self.movesPlay:
                 if(self.state_values[int(move)] == 0):
                     self.state_values[int(move)] = self.learning
                 else:
-                    self.state_values[int(move)] *= (1 + self.learning)
-                self.addLearningList(self.state_values[int(move)])
+                    self.state_values[int(move)] += self.learning * (1 - (1/(1+np.exp(-self.state_values[int(move)]))))
+                averageLearningGame = np.append(averageLearningGame, self.state_values[int(move)])
+               
                 
         else:
             for move in self.movesPlay:
                 if(self.state_values[int(move)] == 0):
-                    self.state_values[int(move)] -= self.learning         
+                    self.state_values[int(move)] -= self.learning        
                 else:
-                    self.state_values[int(move)] *= (1 - self.learning)
+                    self.state_values[int(move)] -= self.learning * ((1/(1+np.exp(-self.state_values[int(move)]))))
                   
-                self.addLearningList(self.state_values[int(move)])
-
+                averageLearningGame = np.append(averageLearningGame, self.state_values[int(move)])
+                
+      
+        
+        self.addLearningList(np.average(averageLearningGame))
         self.movesPlay = np.array([])
         self.updateFile()
         print("Fichier mis à jour")
@@ -464,8 +477,8 @@ class Game:
        
         victoryTypePieGraphic(self.board.getVictoryType())
         
-        learningCoefGraphic(self.player1.getLearningList(), self.player1.getName())
-        learningCoefGraphic(self.player2.getLearningList(), self.player2.getName())
+        learningValueGraphic(self.player1.getLearningList(), self.player1.getName())
+        learningValueGraphic(self.player2.getLearningList(), self.player2.getName())
         
         print("Fin des parties")
 
@@ -475,6 +488,7 @@ boardTemplate = np.array([
     [' ',' ',' '],
 ]
 );
+
 
 board = Board(boardTemplate)
 game = Game(board)
