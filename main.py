@@ -83,7 +83,7 @@ Fin de section
 """
 
 class Player():
-    def __init__(self, name, playerType, item, wins, loses, draws, learningList, vectorGame):
+    def __init__(self, name, playerType, item, wins, loses, draws, learningList):
         self.name = name
         self.type = playerType
         self.item = item
@@ -130,7 +130,7 @@ class Player():
 class AI_RL(Player):
 
     def __init__(self, name,item, allCombinations, epsilon):
-        super().__init__(name, 'IA', item, 0,0,0,[],{})
+        super().__init__(name, 'IA', item, 0,0,0,[])
         self.epsilon = epsilon   # proba d'exploration
         self.learning = 0.05  # changement des probas des combinaisons
         self.current_moves = {}
