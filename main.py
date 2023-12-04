@@ -8,7 +8,6 @@ class Item(Enum):
     X = 'X'
     O = 'O'
 
-
 """
 Section : Fonction pour faire les statistique
 """
@@ -156,10 +155,11 @@ class AI_RL(Player):
 
     def bestMove(self, combinationsArray, emptyCells):
         valuesList = []
-        for i in range(len(combinationsArray)):
+        for i in combinationsArray:
             valuesList.append(self.state_values[i])
         argMax = np.argmax(valuesList)
         self.movesPlay = np.append(self.movesPlay, combinationsArray[argMax])
+
         return emptyCells[argMax]
 
     def combinations(self, board, emptyCellsArray):
@@ -170,7 +170,7 @@ class AI_RL(Player):
 
         for i in range(len(emptyCellsArray)):
             actualBoardClass.addItem(emptyCellsArray[i], self.item)
-            arrayOfNextStateId.append(  list(self.allCombinations.keys())[  list(self.allCombinations.values()).index(actualBoardClass.getBoard().tolist())  ]  )
+            arrayOfNextStateId.append(list(self.allCombinations.keys())[list(self.allCombinations.values()).index(actualBoardClass.getBoard().tolist())])
             actualBoardClass.resetWithTemplate(actualBoard)
 
         return arrayOfNextStateId
@@ -193,12 +193,9 @@ class AI_RL(Player):
 
             self.movesPlay = np.append(self.movesPlay, combinationsArray[randomNumber])
             print(str(self.movesPlay))
-
             return move
-
         else:
             bestMove = self.bestMove(combinationsArray, emptyCellsArray) # max (proba) ou random (random < epsilon (exploration))
-
 
             print(str(self.movesPlay))
             return bestMove
@@ -215,7 +212,7 @@ class Human(Player):
         super().__init__(name, 'Humain', item, 0,0,0,[])
 
     def input(self, board) :
-        print(self.name + "Joue" + '/n')
+        print(self.name + "Joue")
         return input("Rentrez la position de votre coup")
     
 #Classe pour la grille de jeu
@@ -424,8 +421,8 @@ class Game:
             gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainner")
 
         if(gameMode == '1'):
-            self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
-            self.setPlayer2(AI_RL('IA_2',Item.O.value, allCombinations, 0.105))
+            self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.1))
+            self.setPlayer2(AI_RL('IA_2',Item.O.value, allCombinations, 0.1))
 
         if(gameMode == '2'):
             self.setPlayer1(Human('Joueur',Item.X.value))
