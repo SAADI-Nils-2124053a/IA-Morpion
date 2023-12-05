@@ -9,8 +9,9 @@ class Item(Enum):
     O = 'O'
 
 """
-Section : Fonction pour faire les statistique
+Section : Fonctions pour faire les statistiques
 """
+# Graphic showing the number of wins, loses and draws 
 def winsLosesDrawsPieGraphic(L, playerName):
     plt.pie(L, labels = ['Wins', 'Loses', 'Draws'],       # valeurs et labels
        autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
@@ -19,7 +20,8 @@ def winsLosesDrawsPieGraphic(L, playerName):
 
     plt.title('Diagramme en secteurs contenant le résultats des parties de ' + playerName)
     plt.show()
-    
+
+# Graphic showing the probability of the first and second move
 def firstAndSecondMoveGraphic(firstMove, secondMove):
     
     maxFirstMove = max(max(inner_list) for inner_list in firstMove)
@@ -56,14 +58,16 @@ def firstAndSecondMoveGraphic(firstMove, secondMove):
     
     print("Second coup " , secondMove)
 
+# Graphic showing the number of wins of each type
 def victoryTypePieGraphic(victoryType):
-    plt.pie(victoryType, labels = ['Horizontalement', 'Vertigalement', 'Diagonalement'],       # valeurs et labels
+    plt.pie(victoryType, labels = ['Horizontalement', 'Verticalement', 'Diagonalement'],       # valeurs et labels
        autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
        pctdistance = 0.7,                    # distance au centre pour l'affichage des pourcentages
        labeldistance = 1.2)
     plt.title('Graphique de la répartition des types de victoire')
     plt.show()
 
+# Graphic representing the new values due to all games
 def learningValueGraphic(learningList, name):
     
     x = [i for i in range (len(learningList))]
@@ -82,6 +86,7 @@ def learningValueGraphic(learningList, name):
 Fin de section
 """
 
+# Class containing the basic attributes and methods of a player
 class Player():
     def __init__(self, name, playerType, item, wins, loses, draws, learningList):
         self.name = name
@@ -91,7 +96,6 @@ class Player():
         self.loses = loses
         self.draws = draws
         self.learningList = learningList
-
 
     def setWins(self, wins):
         self.wins = wins
@@ -126,18 +130,19 @@ class Player():
     def getLearningList(self):
         return self.learningList
     
-#Classe pour l'IA
+# Class representing AI with reinforcement learning
 class AI_RL(Player):
 
     def __init__(self, name,item, allCombinations, epsilon):
         super().__init__(name, 'IA', item, 0,0,0,[])
-        self.epsilon = epsilon   # proba d'exploration
+        self.epsilon = epsilon   # probabilité d'exploration
         self.learning = 0.05  # changement des probas des combinaisons
         self.current_moves = {}
         self.allCombinations = allCombinations
         self.state_values = self.loadFile()
         self.movesPlay = np.array([])
 
+    # Update the file of the IA by modifying points
     def update(self, win):
         averageLearningGame = np.array([])
         if win:
@@ -165,29 +170,31 @@ class AI_RL(Player):
         self.updateFile()
         print("Fichier mis à jour")
 
-
+    # Return the best move to make for the AI with the values in the AI's file
     def bestMove(self, combinationsArray, emptyCells):
         valuesList = []
         for i in combinationsArray:
-            valuesList.append(self.state_values[i])
-        argMax = np.argmax(valuesList)
+            valuesList.append(self.state_values[i]) # Get the value of the next state and add it to the list
+        argMax = np.argmax(valuesList)  # Get the indice of the maximum value of the list
         self.movesPlay = np.append(self.movesPlay, combinationsArray[argMax])
 
         return emptyCells[argMax]
 
+    # Return the id of all the possible next states of the board
     def combinations(self, board, emptyCellsArray):
         arrayOfNextStateId = []
 
-        actualBoard = np.copy(board)
-        actualBoardClass = Board(np.copy(board))
+        actualBoard = np.copy(board)    # Use to reset the board
+        actualBoardClass = Board(np.copy(board))    # Use to get the next states id
 
         for i in range(len(emptyCellsArray)):
-            actualBoardClass.addItem(emptyCellsArray[i], self.item)
-            arrayOfNextStateId.append(list(self.allCombinations.keys())[list(self.allCombinations.values()).index(actualBoardClass.getBoard().tolist())])
-            actualBoardClass.resetWithTemplate(actualBoard)
+            actualBoardClass.addItem(emptyCellsArray[i], self.item)  # add the player's symbol to the board
+            arrayOfNextStateId.append(list(self.allCombinations.keys())[list(self.allCombinations.values()).index(actualBoardClass.getBoard().tolist())]) # Get the indice of the value (board possibility in the allCombinations' dictionnary) corresponding to the new board (we added the player's symbol to the empty cell), and get the key with the indice
+            actualBoardClass.resetWithTemplate(actualBoard) # reset the board to the previous state
 
         return arrayOfNextStateId
 
+    # Return a list containing all the position of the empty cells of the given board
     def emptyCells(self, board):
         emptyCells = np.array([])
         for x in range(len(board)):
@@ -196,61 +203,68 @@ class AI_RL(Player):
                     emptyCells = np.append(emptyCells,str(x)+str(y))
         return emptyCells
 
+    # Return the move (random or best move) of the AI
     def input(self, board):
-        emptyCellsArray = self.emptyCells(board) # empty cells
+        emptyCellsArray = self.emptyCells(board) # get empty cells of the current board
 
-        combinationsArray = self.combinations(board, emptyCellsArray)
-        if random.random() < self.epsilon: #exploration
+        combinationsArray = self.combinations(board, emptyCellsArray) # Get the id of the possible next state
+        if random.random() < self.epsilon: # exploration - random move
             randomNumber = random.randint(0, len(emptyCellsArray)-1);
             move = emptyCellsArray[randomNumber]
 
             self.movesPlay = np.append(self.movesPlay, combinationsArray[randomNumber])
-            print(str(self.movesPlay))
             return move
         else:
-            bestMove = self.bestMove(combinationsArray, emptyCellsArray) # max (proba) ou random (random < epsilon (exploration))
+            bestMove = self.bestMove(combinationsArray, emptyCellsArray)
 
-            print(str(self.movesPlay))
             return bestMove
 
+    # Load file to get the values
     def loadFile(self):
         return np.loadtxt('trained_state_values_' + self.item + '.txt', dtype=np.float64)
 
+    # Update the file with the new values
     def updateFile(self):
         np.savetxt('trained_state_values_' + self.item + '.txt', self.state_values, fmt = '%.6f')
 
-#Classe pour les joueurs humain
+# Class representing a human player
 class Human(Player):
     def __init__(self, name, item) :
         super().__init__(name, 'Humain', item, 0,0,0,[])
 
+    # Return the human input for a move
     def input(self, board) :
         print(self.name + "Joue")
         return input("Rentrez la position de votre coup")
     
-#Classe pour la grille de jeu
+# Class representing the game board
 class Board:
     
-    victoryType = [0,0,0] #[horizontalement, vertigalement, diagonalement]
+    victoryType = [0,0,0] #[horizontalement, verticalement, diagonalement]
 
     def __init__(self, boardTemplate):
         self.boardTemplate = boardTemplate
 
+    # Reset the board
     def resetWithTemplate(self, board):
         self.boardTemplate = np.array(board)
 
+    # Add an item to the board
     def addItem(self, position, item):
         x = int(position[0])
         y = int(position[1])
         self.boardTemplate[x, y] = item
 
+    # Get the board
     def getBoard(self):
         return self.boardTemplate
 
+    # Get the victory types' counters
     def getVictoryType(self):
         return self.victoryType
 
-    def setVictortType(self, type):
+    # Set the victory type's counter
+    def setVictoryType(self, type):
         if (type == "horizontal"):
             self.victoryType[0] += 1
         elif (type == "vertical"):
@@ -258,10 +272,12 @@ class Board:
         elif (type == "diagonal"):
             self.victoryType[2] += 1
 
+    # Reset the board
     def resetBoard(self):
         self.boardTemplate = np.zeros((3, 3), dtype=str)
         self.boardTemplate[:, :] = ' '
 
+    # Check the position validity
     def checkPosition(self, position):
         if(not (position.isnumeric()) or len(position) != 2):#On vérifie si c'est bien un numérique, et si la longeur est bien de 2 (pour l'abscisse et l'ordonné)
             return False
@@ -271,12 +287,15 @@ class Board:
             return self.positionIsTaken(x, y)
         return False
 
+    # Verify if the position provided is valid
     def positionIsValid(self, x, y):
-        return ((0 <= x <= 2) and (0 <= y <= 2)) #Début de la matrice à 00(haut gauche) et la fin a 22(bas droite)
+        return ((0 <= x <= 2) and (0 <= y <= 2))
 
+    # Verify if the position provided is already taken
     def positionIsTaken(self, x, y):
         return self.boardTemplate[x, y] == ' '
 
+    # Verify if the game ended or not
     def verifyEndGame(self, item):
         if (self.whoWin(item) == True):
             print(item + ' a gagné')
@@ -287,6 +306,7 @@ class Board:
         else:
             return False
 
+    # Verify if there is a draw
     def isDraw(self):
         status = True
         for row in self.boardTemplate:
@@ -295,12 +315,13 @@ class Board:
                     status = False
         return status
 
+    # Verify if the player won or not
     def whoWin(self, item):
         print(self.boardTemplate)
         # horizontal
         for row in self.boardTemplate:
             if (row[0] == item and row[1] == item and row[2] == item):
-                self.setVictortType("horizontal")
+                self.setVictoryType("horizontal")
                 return True
 
         # vertical
@@ -308,22 +329,22 @@ class Board:
             if (self.boardTemplate[0][i] == item
                     and self.boardTemplate[1][i] == item
                     and self.boardTemplate[2][i] == item):
-                self.setVictortType("vertical")
+                self.setVictoryType("vertical")
                 return True
 
         # diagonal
         if (self.boardTemplate[0][0] == item
                 and self.boardTemplate[1][1] == item
                 and self.boardTemplate[2][2] == item):
-            self.setVictortType("diagonal")
+            self.setVictoryType("diagonal")
             return True
         if (self.boardTemplate[2][0] == item
                 and self.boardTemplate[1][1] == item
                 and self.boardTemplate[0][2] == item):
-            self.setVictortType("diagonal")
+            self.setVictoryType("diagonal")
             return True
 
-#Classe fonctionnement du jeu
+# Class representing how the game works
 class Game:
     player1 = None
     player2 = None
@@ -372,6 +393,7 @@ class Game:
         print(board.getBoard())
         return position
 
+    # return if the game ended or not
     def verifyEndGame(self, count, playerWhoPlayed, otherPlayer):
         if(count >= 5):
             endGame = board.verifyEndGame(playerWhoPlayed.getItem())
@@ -389,9 +411,8 @@ class Game:
                 return True
         return False
 
+    # Represents a game
     def game(self):
-        
-        # logique du jeu
         count = 0
         print(self.board.getBoard())
         # player 1 input - First Move*
@@ -418,6 +439,7 @@ class Game:
 
         return 0
 
+    # Representing the menu where the user can chose the game mode and the number of games
     def menu(self):
 
         player = ['X','O',' ']
@@ -429,9 +451,9 @@ class Game:
             allCombinations[state] = all_possible_states[state]
 
         print("Choisir le mode de jeu")
-        gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainner")
+        gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainnée : ")
         while(not (gameMode.isnumeric()) or len(gameMode) != 1):
-            gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainner")
+            gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainée :")
 
         if(gameMode == '1'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.1))
@@ -449,18 +471,19 @@ class Game:
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
             self.setPlayer2(AI_RL('IA_2',Item.O.value, allCombinations, 1.0))
 
-        numberGame = input("Choisir le nombre de partie")
+        numberGame = input("Choisir le nombre de partie : ")
         while(not (numberGame.isnumeric())):
-            numberGame = input("Choisir le nombre de partie")
+            numberGame = input("Choisir le nombre de partie : ")
 
         return numberGame
 
+    # Call the main functions of the game
     def main(self):
         numberGame = int(self.menu())
-        while numberGame>0: # mettre un argument dans l'appel du fichier (Exemple : -n 1000 => 1000 games
+        while numberGame>0:
             player1 = self.player1
             player2 = self.player2
-            if random.random() > 0.5:
+            if random.random() > 0.5: # which player makes the first move
                 self.setPlayer1(player1)
                 self.setPlayer2(player2)
             else:
@@ -471,6 +494,7 @@ class Game:
             board.resetBoard()
             numberGame -= 1
 
+        # Call the graphic functions
         winsLosesDrawsPieGraphic([self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()], self.getPlayer1().getName())
         
         firstAndSecondMoveGraphic(self.getFirstMove(), self.getSecondMove())
