@@ -460,7 +460,7 @@ class Game:
 
         elif(gameMode == '3'):
             self.setPlayer1(Human('Joueur_1',Item.X.value))
-            self.setPlayer1(Human('Joueur_2',Item.O.value))
+            self.setPlayer2(Human('Joueur_2',Item.O.value))
 
         elif(gameMode == '4'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
