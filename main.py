@@ -73,11 +73,6 @@ def learningValueGraphic(learningList, name):
     x = [i for i in range (len(learningList))]
     
     plt.scatter(x,learningList)
-    
-    a, b = np.polyfit(x,learningList,1)
-    
-    x_trace = np.linspace(0,len(learningList),len(learningList)*10)
-    plt.plot(x_trace, a*x_trace+b , 'red')
     plt.title("L'évolution des valeurs d'apprentissage de "+ name)
     plt.show()
  
