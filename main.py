@@ -3,6 +3,8 @@ import random
 from enum import Enum
 import itertools
 import matplotlib.pyplot as plt
+import os
+
 
 class Item(Enum):
     X = 'X'
@@ -69,10 +71,8 @@ def victoryTypePieGraphic(victoryType):
 
 # Graphic representing the new values due to all games
 def learningValueGraphic(learningList, name):
-    
     x = [i for i in range (len(learningList))]
-    
-    plt.scatter(x,learningList)
+    plt.scatter(x,learningList, label="valeur d'apprentissage par partie")
     plt.title("L'évolution des valeurs d'apprentissage de "+ name)
     plt.show()
  
@@ -446,60 +446,91 @@ class Game:
             allCombinations[state] = all_possible_states[state]
 
         print("Choisir le mode de jeu")
-        gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainnée : ")
+        gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainnée; 5 - Remettre à zero les fichiers : ")
         while(not (gameMode.isnumeric()) or len(gameMode) != 1):
-            gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainée :")
+            gameMode = input("1 - IA vs IA; 2 Humain vs IA; - 3 Humain vs Humain; 4 - IA vs IA pas entrainée; 5 - Remettre à zero les fichiers :")
 
         if(gameMode == '1'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.1))
             self.setPlayer2(AI_RL('IA_2',Item.O.value, allCombinations, 0.1))
 
-        if(gameMode == '2'):
+        elif(gameMode == '2'):
             self.setPlayer1(Human('Joueur',Item.X.value))
             self.setPlayer2(AI_RL('IA',Item.O.value, allCombinations, 0.105))
 
-        if(gameMode == '3'):
+        elif(gameMode == '3'):
             self.setPlayer1(Human('Joueur_1',Item.X.value))
             self.setPlayer1(Human('Joueur_2',Item.O.value))
 
-        if(gameMode == '4'):
+        elif(gameMode == '4'):
             self.setPlayer1(AI_RL('IA_1',Item.X.value, allCombinations, 0.105))
             self.setPlayer2(AI_RL('IA_2',Item.O.value, allCombinations, 1.0))
-
-        numberGame = input("Choisir le nombre de partie : ")
-        while(not (numberGame.isnumeric())):
+            resetFile(Item.O.value)
+            
+        elif(gameMode == '5'):
+            resetFile(Item.X.value)
+            resetFile(Item.O.value)
+            
+        if (gameMode != '5'):
+            
             numberGame = input("Choisir le nombre de partie : ")
+            while(not (numberGame.isnumeric())):
+                numberGame = input("Choisir le nombre de partie : ")
 
-        return numberGame
+            return numberGame
+        
 
+        return 0
+        
+        
     # Call the main functions of the game
     def main(self):
         numberGame = int(self.menu())
-        while numberGame>0:
-            player1 = self.player1
-            player2 = self.player2
-            if random.random() > 0.5: # which player makes the first move
-                self.setPlayer1(player1)
-                self.setPlayer2(player2)
-            else:
-                self.setPlayer1(player2)
-                self.setPlayer2(player1)
+        if (numberGame != 0):
+                
+            while numberGame>0:
+                player1 = self.player1
+                player2 = self.player2
+                if random.random() > 0.5: # which player makes the first move
+                    self.setPlayer1(player1)
+                    self.setPlayer2(player2)
+                else:
+                    self.setPlayer1(player2)
+                    self.setPlayer2(player1)
+    
+                self.game()
+                board.resetBoard()
+                numberGame -= 1
+    
+            # Call the graphic functions
+            winsLosesDrawsPieGraphic([self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()], self.getPlayer1().getName())
+            
+            firstAndSecondMoveGraphic(self.getFirstMove(), self.getSecondMove())
+           
+            victoryTypePieGraphic(self.board.getVictoryType())
+            
+            learningValueGraphic(self.player1.getLearningList(), self.player1.getName())
+            learningValueGraphic(self.player2.getLearningList(), self.player2.getName())
+            
+            print("Fin des parties")
 
-            self.game()
-            board.resetBoard()
-            numberGame -= 1
+def resetFile(item):
+    if (not os.path.exists('trained_state_values_' + item + '.txt')):
+        file = open('trained_state_values_' + item + '.txt', 'a')
+        file.close()
+    
+    player = ['X','O',' ']
+    all_possible_states = [[list(i[0:3]),list(i[3:6]),list(i[6:10])] for i in itertools.product(player, repeat = 9)]
+    n_states = len(all_possible_states) 
+    state_values = np.full((n_states),0.0)
+    np.savetxt('trained_state_values_' + item + '.txt', state_values, fmt = '%.6f')
+    
 
-        # Call the graphic functions
-        winsLosesDrawsPieGraphic([self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()], self.getPlayer1().getName())
-        
-        firstAndSecondMoveGraphic(self.getFirstMove(), self.getSecondMove())
-       
-        victoryTypePieGraphic(self.board.getVictoryType())
-        
-        learningValueGraphic(self.player1.getLearningList(), self.player1.getName())
-        learningValueGraphic(self.player2.getLearningList(), self.player2.getName())
-        
-        print("Fin des parties")
+resetFile(Item.X.value)
+resetFile(Item.O.value)
+
+
+
 
 boardTemplate = np.array([
     [' ',' ',' '],
