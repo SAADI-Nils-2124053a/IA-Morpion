@@ -514,20 +514,22 @@ class Game:
             
             print("Fin des parties")
 
-def resetFile(item):
+def createFileIfNotExists(item):
     if (not os.path.exists('trained_state_values_' + item + '.txt')):
         file = open('trained_state_values_' + item + '.txt', 'a')
         file.close()
-    
+        resetFile(item)
+
+def resetFile(item):
     player = ['X','O',' ']
     all_possible_states = [[list(i[0:3]),list(i[3:6]),list(i[6:10])] for i in itertools.product(player, repeat = 9)]
     n_states = len(all_possible_states) 
     state_values = np.full((n_states),0.0)
     np.savetxt('trained_state_values_' + item + '.txt', state_values, fmt = '%.6f')
-    
+    print('Fichier initialisé')
 
-resetFile(Item.X.value)
-resetFile(Item.O.value)
+createFileIfNotExists(Item.X.value)
+createFileIfNotExists(Item.O.value)
 
 
 
