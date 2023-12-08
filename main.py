@@ -25,7 +25,6 @@ def winsLosesDrawsPieGraphic(L, playerName):
 
 # Graphic showing the probability of the first and second move
 def firstAndSecondMoveGraphic(firstMove, secondMove):
-    
     maxFirstMove = max(max(inner_list) for inner_list in firstMove)
     minFirstMove = min(min(inner_list) for inner_list in firstMove)
 
@@ -62,19 +61,21 @@ def firstAndSecondMoveGraphic(firstMove, secondMove):
 
 # Graphic showing the number of wins of each type
 def victoryTypePieGraphic(victoryType):
-    plt.pie(victoryType, labels = ['Horizontalement', 'Verticalement', 'Diagonalement'],       # valeurs et labels
-       autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
-       pctdistance = 0.7,                    # distance au centre pour l'affichage des pourcentages
-       labeldistance = 1.2)
-    plt.title('Graphique de la répartition des types de victoire')
-    plt.show()
+    if(sum(victoryType) > 0):
+        plt.pie(victoryType, labels = ['Horizontalement', 'Verticalement', 'Diagonalement'],       # valeurs et labels
+           autopct = lambda z: str(round(z, 2)) + '%', # affichage des pourcentages dans les secteurs
+           pctdistance = 0.7,                    # distance au centre pour l'affichage des pourcentages
+           labeldistance = 1.2)
+        plt.title('Graphique de la répartition des types de victoire')
+        plt.show()
 
 # Graphic representing the new values due to all games
 def learningValueGraphic(learningList, name):
-    x = [i for i in range (len(learningList))]
-    plt.scatter(x,learningList, label="valeur d'apprentissage par partie")
-    plt.title("L'évolution des valeurs d'apprentissage de "+ name)
-    plt.show()
+    if(sum(learningList) > 0):
+        x = [i for i in range (len(learningList))]
+        plt.scatter(x,learningList, label="valeur d'apprentissage par partie")
+        plt.title("L'évolution des valeurs d'apprentissage de "+ name)
+        plt.show()
  
     
 """
@@ -505,12 +506,10 @@ class Game:
             # Call the graphic functions
             winsLosesDrawsPieGraphic([self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()], self.getPlayer1().getName())
 
-            if(self.getPlayer1().getWins() > 0 or  self.getPlayer1().getLoses() > 0):
-                learningValueGraphic(self.player1.getLearningList(), self.player1.getName())
-    
+            learningValueGraphic(self.player1.getLearningList(), self.player1.getName())
 
-            if(self.getPlayer2().getWins() > 0 or  self.getPlayer2().getLoses() > 0):
-                learningValueGraphic(self.player2.getLearningList(), self.player2.getName())
+
+            learningValueGraphic(self.player2.getLearningList(), self.player2.getName())
 
 
             firstAndSecondMoveGraphic(self.getFirstMove(), self.getSecondMove())
