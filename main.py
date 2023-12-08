@@ -504,13 +504,18 @@ class Game:
     
             # Call the graphic functions
             winsLosesDrawsPieGraphic([self.getPlayer1().getWins(), self.getPlayer1().getLoses(), self.getPlayer1().getDraws()], self.getPlayer1().getName())
-            
+
+            if(self.getPlayer1().getWins() > 0 or  self.getPlayer1().getLoses() > 0):
+                learningValueGraphic(self.player1.getLearningList(), self.player1.getName())
+    
+
+            if(self.getPlayer2().getWins() > 0 or  self.getPlayer2().getLoses() > 0):
+                learningValueGraphic(self.player2.getLearningList(), self.player2.getName())
+
+
             firstAndSecondMoveGraphic(self.getFirstMove(), self.getSecondMove())
            
             victoryTypePieGraphic(self.board.getVictoryType())
-            
-            learningValueGraphic(self.player1.getLearningList(), self.player1.getName())
-            learningValueGraphic(self.player2.getLearningList(), self.player2.getName())
             
             print("Fin des parties")
 
